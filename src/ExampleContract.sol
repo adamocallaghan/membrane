@@ -5,6 +5,9 @@ import {OApp, Origin, MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contract
 
 contract ExampleContract is OApp {
     string public data;
+    uint256 public numberToMint;
+    address public recipient;
+    mapping(address => uint256) public stablecoinsMinted;
 
     constructor(address _endpoint) OApp(_endpoint, msg.sender) {}
 
@@ -12,8 +15,14 @@ contract ExampleContract is OApp {
     /// @param _dstEid The endpoint ID of the destination chain.
     /// @param _message The message to be sent.
     /// @param _options The message execution options (e.g. gas to use on destination).
-    function sendMessage(uint32 _dstEid, string memory _message, bytes calldata _options) external payable {
-        bytes memory _payload = abi.encode(_message); // Encode the message as bytes
+    function sendMessage(
+        uint32 _dstEid,
+        string memory _message,
+        uint256 _numberToMint,
+        address _recipient,
+        bytes calldata _options
+    ) external payable {
+        bytes memory _payload = abi.encode(_message, _numberToMint, _recipient); // Encode the message as bytes
         _lzSend(
             _dstEid,
             _payload,
@@ -29,12 +38,14 @@ contract ExampleContract is OApp {
     /// @param _options The message execution options (e.g. gas to use on destination).
     /// @return nativeFee Estimated gas fee in native gas.
     /// @return lzTokenFee Estimated gas fee in ZRO token.
-    function estimateFee(uint32 _dstEid, string memory _message, bytes calldata _options)
-        public
-        view
-        returns (uint256 nativeFee, uint256 lzTokenFee)
-    {
-        bytes memory _payload = abi.encode(_message);
+    function estimateFee(
+        uint32 _dstEid,
+        string memory _message,
+        uint256 _numberToMint,
+        address _recipient,
+        bytes calldata _options
+    ) public view returns (uint256 nativeFee, uint256 lzTokenFee) {
+        bytes memory _payload = abi.encode(_message, _numberToMint, _recipient);
         MessagingFee memory fee = _quote(_dstEid, _payload, _options, false);
         return (fee.nativeFee, fee.lzTokenFee);
     }
@@ -55,6 +66,11 @@ contract ExampleContract is OApp {
         address _executor,
         bytes calldata _extraData
     ) internal override {
-        data = abi.decode(payload, (string));
+        (data, numberToMint, recipient) = abi.decode(payload, (string, uint256, address));
+        mintStablecoins(recipient, numberToMint);
+    }
+
+    function mintStablecoins(address _recipient, uint256 _numberToMint) internal {
+        stablecoinsMinted[_recipient] += _numberToMint;
     }
 }
