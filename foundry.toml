@@ -2,5 +2,13 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+remappings = [
+    '@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts',
+    'solidity-bytes-utils/=lib/solidity-bytes-utils',
+    '@layerzerolabs/lz-evm-oapp-v2/=lib/LayerZero-v2/packages/layerzero-v2/evm/oapp',
+    '@layerzerolabs/lz-evm-protocol-v2/=lib/LayerZero-v2/packages/layerzero-v2/evm/protocol',
+    '@layerzerolabs/lz-evm-messagelib-v2/=lib/LayerZero-v2/packages/layerzero-v2/evm/messagelib',
+    '@chainlink/=lib/foundry-chainlink-toolkit/src'
+]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
