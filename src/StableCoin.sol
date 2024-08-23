@@ -9,6 +9,8 @@ contract StableCoin is OFT {
 
     error Error__NotStableEngine();
 
+    event Mint(address recipient, uint256 amount);
+
     constructor(string memory oftName, string memory oftSymbol, address lzEndpoint, address _stableEngine)
         OFT(oftName, oftSymbol, lzEndpoint, msg.sender)
         Ownable()
@@ -19,6 +21,7 @@ contract StableCoin is OFT {
 
     function mint(address _recipient, uint256 _amountToMint) external onlyStableEngine {
         _mint(_recipient, _amountToMint);
+        emit Mint(_recipient, _amountToMint);
     }
 
     modifier onlyStableEngine() {

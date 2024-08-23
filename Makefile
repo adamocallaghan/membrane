@@ -3,10 +3,10 @@
 # DEPLOY OAPP CONTRACTS
 
 deploy-to-base:
-	forge create ./src/StableEngine.sol:StableEngine --rpc-url $(BASE_SEPOLIA_RPC) --constructor-args $(BASE_SEPOLIA_LZ_ENDPOINT) --account deployer
+	forge create ./src/StableEngine.sol:StableEngine --rpc-url $(BASE_SEPOLIA_RPC) --constructor-args $(BASE_SEPOLIA_LZ_ENDPOINT) --etherscan-api-key $(BASE_ETHERSCAN_API_KEY) --verify --account deployer
 
 deploy-to-optimism:
-	forge create ./src/StableEngine.sol:StableEngine --rpc-url $(OPTIMISM_SEPOLIA_RPC) --constructor-args $(OPTIMISM_SEPOLIA_LZ_ENDPOINT) --account deployer
+	forge create ./src/StableEngine.sol:StableEngine --rpc-url $(OPTIMISM_SEPOLIA_RPC) --constructor-args $(OPTIMISM_SEPOLIA_LZ_ENDPOINT) --etherscan-api-key $(OPTIMISM_ETHERSCAN_API_KEY) --verify --account deployer
 
 # SET PEERS / WIRE UP
 
@@ -36,7 +36,7 @@ send-message-from-base-to-optimism-select-one:
 	cast send $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) --value 0.01ether "sendMessage(uint32, string, uint, uint, address, bytes)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Hello World" 345 1 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
 
 send-message-from-base-to-optimism-select-two:
-	cast send $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) --value 0.01ether "sendMessage(uint32, string, uint, uint, address, bytes)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Hello World" 54321 2 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
+	cast send $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) --value 0.01ether "sendMessage(uint32, string, uint, uint, address, bytes)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Hello World" 1ether 2 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
 
 # READ MESSSAGE ON OP
 
@@ -49,12 +49,18 @@ read-stablecoins-minted-on-optimism:
 # DEPLOY OFT CONTRACTS
 
 deploy-oft-to-optimism:
-	forge create ./src/StableCoin.sol:StableCoin --rpc-url $(OPTIMISM_SEPOLIA_RPC) --constructor-args "Spectre USD" "spUSD" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT) $(OPTIMISM_SEPOLIA_OAPP_ADDRESS) --account deployer
+	forge create ./src/StableCoin.sol:StableCoin --rpc-url $(OPTIMISM_SEPOLIA_RPC) --constructor-args "Spectre USD" "spUSD" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT) $(OPTIMISM_SEPOLIA_OAPP_ADDRESS) --etherscan-api-key $(OPTIMISM_ETHERSCAN_API_KEY) --verify --account deployer
 
-# SET STABLECOIN *on* STABLEENGINE *on* OPTIMISM
+deploy-oft-to-base:
+	forge create ./src/StableCoin.sol:StableCoin --rpc-url $(BASE_SEPOLIA_RPC) --constructor-args "Spectre USD" "spUSD" $(BASE_SEPOLIA_LZ_ENDPOINT) $(BASE_SEPOLIA_OAPP_ADDRESS) --etherscan-api-key $(BASE_ETHERSCAN_API_KEY) --verify --account deployer
+
+# SET STABLECOIN *on* STABLEENGINE
 
 set-stablecoin-on-stableengine-sepolia:
 	cast send $(OPTIMISM_SEPOLIA_OAPP_ADDRESS) --rpc-url $(OPTIMISM_SEPOLIA_RPC) "setStableCoin(address)" $(OPTIMISM_SEPOLIA_OFT_ADDRESS) --account deployer
+
+set-stablecoin-on-stableengine-base:
+	cast send $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) "setStableCoin(address)" $(BASE_SEPOLIA_OFT_ADDRESS) --account deployer
 
 # CHECK STABLECOIN CONTRACT FOR DEPLOYER BALANCE
 check-balance-on-stablecoin-optimism:
