@@ -2,16 +2,15 @@
 pragma solidity ^0.8.0;
 
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
+import {IStableCoin} from "./interfaces/IStableCoin.sol";
+import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract StableEngine is OApp {
     string public data;
-    // uint256 public numberToMint;
-    // address public recipient;
-    // uint256 public selection;
-
     mapping(address => uint256) public stablecoinsMinted;
+    address stableCoinContract;
 
-    constructor(address _endpoint) OApp(_endpoint, msg.sender) {}
+    constructor(address _endpoint) OApp(_endpoint, msg.sender) Ownable() {}
 
     /// @notice Sends a message from the source chain to the destination chain.
     /// @param _dstEid The endpoint ID of the destination chain.
@@ -81,6 +80,8 @@ contract StableEngine is OApp {
             mintStablecoins(recipient, numberOfCoins);
         } else if (selection == 1) {
             burnStablecoins(recipient, numberOfCoins);
+        } else if (selection == 2) {
+            callStableEngineContractAndMint(recipient, numberOfCoins);
         }
     }
 
@@ -90,5 +91,13 @@ contract StableEngine is OApp {
 
     function burnStablecoins(address _recipient, uint256 _numberOfCoins) internal {
         stablecoinsMinted[_recipient] -= _numberOfCoins;
+    }
+
+    function callStableEngineContractAndMint(address _recipient, uint256 _numberOfCoins) internal {
+        IStableCoin(stableCoinContract).mint(_recipient, _numberOfCoins);
+    }
+
+    function setStableCoin(address _stableCoin) external onlyOwner {
+        stableCoinContract = _stableCoin;
     }
 }
