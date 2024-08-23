@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 
 contract ExampleContract is OApp {
-    constructor(address _endpoint, address _owner) OApp(_endpoint, _owner) {}
-
     string public data;
+
+    constructor(address _endpoint) OApp(_endpoint, msg.sender) {}
 
     /// @notice Sends a message from the source chain to the destination chain.
     /// @param _dstEid The endpoint ID of the destination chain.
@@ -56,6 +56,5 @@ contract ExampleContract is OApp {
         bytes calldata _extraData
     ) internal override {
         data = abi.decode(payload, (string));
-        // other logic
     }
 }
