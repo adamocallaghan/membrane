@@ -3,10 +3,10 @@
 # DEPLOY CONTRACTS
 
 deploy-to-base:
-	forge create ./src/ExampleContract.sol:ExampleContract --rpc-url $(BASE_SEPOLIA_RPC) --constructor-args $(BASE_SEPOLIA_LZ_ENDPOINT) --account deployer
+	forge create ./src/StableEngine.sol:StableEngine --rpc-url $(BASE_SEPOLIA_RPC) --constructor-args $(BASE_SEPOLIA_LZ_ENDPOINT) --account deployer
 
 deploy-to-optimism:
-	forge create ./src/ExampleContract.sol:ExampleContract --rpc-url $(OPTIMISM_SEPOLIA_RPC) --constructor-args $(OPTIMISM_SEPOLIA_LZ_ENDPOINT) --account deployer
+	forge create ./src/StableEngine.sol:StableEngine --rpc-url $(OPTIMISM_SEPOLIA_RPC) --constructor-args $(OPTIMISM_SEPOLIA_LZ_ENDPOINT) --account deployer
 
 # SET PEERS / WIRE UP
 

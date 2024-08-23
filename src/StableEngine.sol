@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 
-contract ExampleContract is OApp {
+contract StableEngine is OApp {
     string public data;
     // uint256 public numberToMint;
     // address public recipient;
