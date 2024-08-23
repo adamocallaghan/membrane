@@ -1,6 +1,6 @@
 -include .env
 
-# DEPLOY CONTRACTS
+# DEPLOY OAPP CONTRACTS
 
 deploy-to-base:
 	forge create ./src/StableEngine.sol:StableEngine --rpc-url $(BASE_SEPOLIA_RPC) --constructor-args $(BASE_SEPOLIA_LZ_ENDPOINT) --account deployer
@@ -39,3 +39,8 @@ read-data-var-on-optimism:
 
 read-stablecoins-minted-on-optimism:
 	cast call $(OPTIMISM_SEPOLIA_OAPP_ADDRESS) --rpc-url $(OPTIMISM_SEPOLIA_RPC) "stablecoinsMinted(address)(uint)" $(DEPLOYER_PUBLIC_ADDRESS) --account deployer
+
+# DEPLOY OFT CONTRACTS
+
+deploy-oft-to-base:
+	forge create ./src/StableCoin.sol:StableCoin --rpc-url $(BASE_SEPOLIA_RPC) --constructor-args "Spectre USD" "spUSD" $(BASE_SEPOLIA_LZ_ENDPOINT) $(BASE_SEPOLIA_OAPP_ADDRESS) --account deployer
