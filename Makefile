@@ -18,13 +18,19 @@ set-optimism-peer:
 
 # ESTIMATE GAS FEE
 
-estimate-gas-fee-base:
-	cast call $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) "estimateFee(uint32, string, uint, address, bytes)(uint,uint)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Hello World" 12345 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
+estimate-gas-fee-base-select-zero:
+	cast call $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) "estimateFee(uint32, string, uint, uint, address, bytes)(uint,uint)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Hello World" 12345 0 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
+
+estimate-gas-fee-base-select-one:
+	cast call $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) "estimateFee(uint32, string, uint, uint, address, bytes)(uint,uint)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Hello World" 12345 1 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
 
 # SEND MESSAGE
 
-send-message-from-base-to-optimism:
-	cast send $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) --value 0.01ether "sendMessage(uint32, string, uint, address, bytes)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Hello World" 12345 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
+send-message-from-base-to-optimism-select-zero:
+	cast send $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) --value 0.01ether "sendMessage(uint32, string, uint, uint, address, bytes)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Hello World" 12345 0 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
+
+send-message-from-base-to-optimism-select-one:
+	cast send $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) --value 0.01ether "sendMessage(uint32, string, uint, uint, address, bytes)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Hello World" 345 1 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
 
 # READ MESSSAGE ON OP
 

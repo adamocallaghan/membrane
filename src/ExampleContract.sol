@@ -5,8 +5,10 @@ import {OApp, Origin, MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contract
 
 contract ExampleContract is OApp {
     string public data;
-    uint256 public numberToMint;
-    address public recipient;
+    // uint256 public numberToMint;
+    // address public recipient;
+    // uint256 public selection;
+
     mapping(address => uint256) public stablecoinsMinted;
 
     constructor(address _endpoint) OApp(_endpoint, msg.sender) {}
@@ -19,10 +21,11 @@ contract ExampleContract is OApp {
         uint32 _dstEid,
         string memory _message,
         uint256 _numberToMint,
+        uint256 _selection,
         address _recipient,
         bytes calldata _options
     ) external payable {
-        bytes memory _payload = abi.encode(_message, _numberToMint, _recipient); // Encode the message as bytes
+        bytes memory _payload = abi.encode(_message, _numberToMint, _selection, _recipient); // Encode the message as bytes
         _lzSend(
             _dstEid,
             _payload,
@@ -42,10 +45,11 @@ contract ExampleContract is OApp {
         uint32 _dstEid,
         string memory _message,
         uint256 _numberToMint,
+        uint256 _selection,
         address _recipient,
         bytes calldata _options
     ) public view returns (uint256 nativeFee, uint256 lzTokenFee) {
-        bytes memory _payload = abi.encode(_message, _numberToMint, _recipient);
+        bytes memory _payload = abi.encode(_message, _numberToMint, _selection, _recipient);
         MessagingFee memory fee = _quote(_dstEid, _payload, _options, false);
         return (fee.nativeFee, fee.lzTokenFee);
     }
@@ -66,11 +70,25 @@ contract ExampleContract is OApp {
         address _executor,
         bytes calldata _extraData
     ) internal override {
-        (data, numberToMint, recipient) = abi.decode(payload, (string, uint256, address));
-        mintStablecoins(recipient, numberToMint);
+        // decode our incoming payload
+        (string memory _data, uint256 numberOfCoins, uint256 selection, address recipient) =
+            abi.decode(payload, (string, uint256, uint256, address));
+        // set storage var 'data' to the incoming string
+        data = _data;
+
+        // trigger function based on selection (crosschain split logic test)
+        if (selection == 0) {
+            mintStablecoins(recipient, numberOfCoins);
+        } else if (selection == 1) {
+            burnStablecoins(recipient, numberOfCoins);
+        }
     }
 
-    function mintStablecoins(address _recipient, uint256 _numberToMint) internal {
-        stablecoinsMinted[_recipient] += _numberToMint;
+    function mintStablecoins(address _recipient, uint256 _numberOfCoins) internal {
+        stablecoinsMinted[_recipient] += _numberOfCoins;
+    }
+
+    function burnStablecoins(address _recipient, uint256 _numberOfCoins) internal {
+        stablecoinsMinted[_recipient] -= _numberOfCoins;
     }
 }
