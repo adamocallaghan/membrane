@@ -4,13 +4,47 @@ pragma solidity ^0.8.0;
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 import {IStableCoin} from "./interfaces/IStableCoin.sol";
 import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import {IERC721} from "@openzeppelin/contracts/interfaces/IERC721.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract StableEngine is OApp {
+contract StableEngine is OApp, IERC721Receiver {
     string public data;
     mapping(address => uint256) public stablecoinsMinted;
-    address stableCoinContract;
+    address public stableCoinContract;
+    address[] public whitelistedNFTs;
+    address[] public nftOracles;
+    mapping(uint256 tokenId => address supplier) public tokenIdToSupplierAddress;
+    mapping(address supplier => bool nftSupplied) public hasUserSuppliedAnNft;
+
+    error Error__NftIsNotAcceptedCollateral();
+
+    event NftSuppliedToContract(uint256 indexed _tokenId);
 
     constructor(address _endpoint) OApp(_endpoint, msg.sender) Ownable() {}
+
+    function supply(address _nftAddress, uint256 _tokenId) public {
+        // *** EOA has to call approve() on the NFT contract to allow this contract to take control of the NFT id number ***
+
+        // check if nft is acceptable collateral
+        for (uint256 i = 0; i < whitelistedNFTs.length; i++) {
+            if (whitelistedNFTs[i] == _nftAddress) {
+                break;
+            } else {
+                revert Error__NftIsNotAcceptedCollateral();
+            }
+        }
+
+        // accept NFT into the contract
+        IERC721(_nftAddress).safeTransferFrom(msg.sender, address(this), _tokenId);
+
+        // update mapping to account for who can withdraw a specific NFT tokenId
+        tokenIdToSupplierAddress[_tokenId] = msg.sender;
+
+        // set mapping to true since they've deposited an nft to mint against
+        hasUserSuppliedAnNft[msg.sender] = true;
+
+        emit NftSuppliedToContract(_tokenId);
+    }
 
     /// @notice Sends a message from the source chain to the destination chain.
     /// @param _dstEid The endpoint ID of the destination chain.
@@ -99,5 +133,14 @@ contract StableEngine is OApp {
 
     function setStableCoin(address _stableCoin) external onlyOwner {
         stableCoinContract = _stableCoin;
+    }
+
+    function setNftAsCollateral(address _nftAddress, address _nftOracle, uint256 _index) external onlyOwner {
+        whitelistedNFTs[_index] = _nftAddress;
+        nftOracles[_index] = _nftOracle;
+    }
+
+    function onERC721Received(address, address, uint256, bytes memory) public virtual override returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 }
