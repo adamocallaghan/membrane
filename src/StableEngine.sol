@@ -23,6 +23,7 @@ contract StableEngine is OApp, IERC721Receiver {
     address[] public nftOracles;
     mapping(address nftAddress => mapping(uint256 tokenId => address supplier)) public
         nftCollectionTokenIdToSupplierAddress;
+    mapping(address user => mapping(address nftAddress => uint256 count)) public userAddressToNftCollectionSuppliedCount;
     mapping(address supplier => uint256 nftSupplied) public numberOfNftsUserHasSupplied;
     mapping(address user => uint256 stablecoinsMinted) public userAddressToNumberOfStablecoinsMinted;
 
@@ -78,10 +79,10 @@ contract StableEngine is OApp, IERC721Receiver {
 
         // update mapping to account for who can withdraw a specific NFT tokenId
         nftCollectionTokenIdToSupplierAddress[_nftAddress][_tokenId] = msg.sender;
-        // tokenIdToSupplierAddress[_tokenId] = msg.sender;
 
-        // set mapping to true since they've deposited an nft to mint against
-        // hasUserSuppliedAnNft[msg.sender] = true;
+        // we always liquidate at floor price, so just need to count how many of each collection they've supplied
+        userAddressToNftCollectionSuppliedCount[msg.sender][_nftAddress]++;
+
         numberOfNftsUserHasSupplied[msg.sender]++;
 
         emit NftSuppliedToContract(_nftAddress, _tokenId);
@@ -100,6 +101,7 @@ contract StableEngine is OApp, IERC721Receiver {
                 IERC721(_nftAddress).transferFrom(address(this), msg.sender, _tokenId);
 
                 nftCollectionTokenIdToSupplierAddress[_nftAddress][_tokenId] = address(0x0); // zero out address that supplied this NFT token id
+                userAddressToNftCollectionSuppliedCount[msg.sender][_nftAddress]--;
                 numberOfNftsUserHasSupplied[msg.sender]--;
 
                 emit NftWithdrawnByUser(msg.sender, _tokenId);
@@ -115,7 +117,7 @@ contract StableEngine is OApp, IERC721Receiver {
     // === MINT OMNI-STABLES ===
     // =========================
 
-    function mintOnOptimism(
+    function mintOnDestination(
         uint32 _dstEid,
         string memory _message,
         uint256 _numberToMint,
@@ -129,11 +131,11 @@ contract StableEngine is OApp, IERC721Receiver {
         }
 
         // calculate amount of stables that user can mint against their entire collateral
-        uint256 totalValueOfAllCollateral = nftPriceInUsd() * numberOfNftsUserHasSupplied[msg.sender];
+        uint256 totalValueOfAllCollateral = nftPriceInUsd() * numberOfNftsUserHasSupplied[msg.sender]; // @todo change to account of different collections and prices
         uint256 availableToBorrowAtMaxCR = (totalValueOfAllCollateral * COLLATERALISATION_RATIO) / 1e18; // 50% of nft price
         uint256 maxStablecoinCanBeMinted = availableToBorrowAtMaxCR - userAddressToNumberOfStablecoinsMinted[msg.sender];
 
-        // 
+        //
         if (_numberToMint <= maxStablecoinCanBeMinted) {
             bytes memory _payload = abi.encode(_message, _numberToMint, _selection, _recipient); // Encode the message as bytes
             _lzSend(
@@ -154,13 +156,7 @@ contract StableEngine is OApp, IERC721Receiver {
         address _recipient,
         bytes calldata _options
     ) external payable {
-        _internalMintOnOptimism(
-        _dstEid,
-         _message,
-        _numberToMint,
-        _selection,
-        _recipient,
-        _options)
+        _internalMintOnOptimism(_dstEid, _message, _numberToMint, _selection, _recipient, _options);
     }
 
     function _internalMintOnOptimism(
