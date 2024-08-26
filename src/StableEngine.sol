@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 import {OApp, Origin, MessagingFee} from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/OApp.sol";
 import {IStableCoin} from "./interfaces/IStableCoin.sol";
@@ -8,9 +8,17 @@ import {IERC721} from "@openzeppelin/contracts/interfaces/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract StableEngine is OApp, IERC721Receiver {
+    // ====================
+    // === STORAGE VARS ===
+    // ====================
+
     string public data;
+
+    // Stablecoin vars
     mapping(address => uint256) public stablecoinsMinted;
     address public stableCoinContract;
+
+    // NFT vars
     address[] public whitelistedNFTs;
     address[] public nftOracles;
     mapping(address nftAddress => mapping(uint256 tokenId => address supplier)) public
@@ -18,10 +26,11 @@ contract StableEngine is OApp, IERC721Receiver {
     mapping(address supplier => uint256 nftSupplied) public numberOfNftsUserHasSupplied;
     mapping(address user => uint256 stablecoinsMinted) public userAddressToNumberOfStablecoinsMinted;
 
+    // CR and Health Factor vars
     uint256 public COLLATERALISATION_RATIO = 5e17; // aka 50%
     uint256 public MIN_HEALTH_FACTOR = 1e18; // aka 1.0
 
-    enum MintOnChain {
+    enum ChainSelection {
         Base,
         Optimism
     }
@@ -43,6 +52,7 @@ contract StableEngine is OApp, IERC721Receiver {
 
     event NftSuppliedToContract(address indexed _nftAddress, uint256 indexed _tokenId);
     event NftWithdrawnByUser(address indexed user, uint256 indexed tokenId);
+    event MintOnChainFunctionSuccessful();
 
     constructor(address _endpoint) OApp(_endpoint, msg.sender) Ownable() {}
 
@@ -105,31 +115,81 @@ contract StableEngine is OApp, IERC721Receiver {
     // === MINT OMNI-STABLES ===
     // =========================
 
-    function mint(uint256 amount, MintOnChain mintOnChain) public payable {
-        // stablecoinContract.mint(msg.sender, amount);
+    function mintOnOptimism(
+        uint32 _dstEid,
+        string memory _message,
+        uint256 _numberToMint,
+        uint256 _selection,
+        address _recipient,
+        bytes calldata _options
+    ) external payable {
         // has user supplied an nft as collateral
         if (numberOfNftsUserHasSupplied[msg.sender] == 0) {
             revert NoNftsCurrentlySupplied();
         }
 
-        uint256 totalStablecoinValueOfUserCollateral = nftPriceInUsd() / COLLATERALISATION_RATIO;
+        // calculate amount of stables that user can mint against their entire collateral
+        uint256 totalValueOfAllCollateral = nftPriceInUsd() * numberOfNftsUserHasSupplied[msg.sender];
+        uint256 availableToBorrowAtMaxCR = (totalValueOfAllCollateral * COLLATERALISATION_RATIO) / 1e18; // 50% of nft price
+        uint256 maxStablecoinCanBeMinted = availableToBorrowAtMaxCR - userAddressToNumberOfStablecoinsMinted[msg.sender];
 
-        uint256 maxStablecoinCanBeMinted =
-            totalStablecoinValueOfUserCollateral - userAddressToNumberOfStablecoinsMinted[msg.sender];
+        // 
+        if (_numberToMint <= maxStablecoinCanBeMinted) {
+            bytes memory _payload = abi.encode(_message, _numberToMint, _selection, _recipient); // Encode the message as bytes
+            _lzSend(
+                _dstEid,
+                _payload,
+                _options,
+                MessagingFee(msg.value, 0), // Fee for the message (nativeFee, lzTokenFee)
+                payable(msg.sender) // The refund address in case the send call reverts
+            );
+        }
+    }
 
-        // if the amount requested was < max value then mint the OFT to the user (on their requested chain?)
-        if (amount <= maxStablecoinCanBeMinted) {
-            if (mintOnChain == MintOnChain.Base) {
-                // if they've requested to mint on Sepolia just mint on the OFT contract
-                // stablecoinContract.mint(msg.sender, amount);
-            }
-            else if (mintOnChain == MintOnChain.Optimism) {
-                // if they've requested to mint on Mumbai we must construct a lz message and call _lzSend() with it
-                // _mintOnDestinationChain(amount);
-            }
-            else revert ChainNotSpecified();
-        } else {
-            revert mintFailed();
+    function externalMintToInternalMint(
+        uint32 _dstEid,
+        string memory _message,
+        uint256 _numberToMint,
+        uint256 _selection,
+        address _recipient,
+        bytes calldata _options
+    ) external payable {
+        _internalMintOnOptimism(
+        _dstEid,
+         _message,
+        _numberToMint,
+        _selection,
+        _recipient,
+        _options)
+    }
+
+    function _internalMintOnOptimism(
+        uint32 _dstEid,
+        string memory _message,
+        uint256 _numberToMint,
+        uint256 _selection,
+        address _recipient,
+        bytes calldata _options
+    ) internal {
+        // has user supplied an nft as collateral
+        if (numberOfNftsUserHasSupplied[msg.sender] == 0) {
+            revert NoNftsCurrentlySupplied();
+        }
+
+        uint256 totalValueOfAllCollateral = nftPriceInUsd() * numberOfNftsUserHasSupplied[msg.sender];
+        uint256 availableToBorrowAtMaxCR = (totalValueOfAllCollateral * COLLATERALISATION_RATIO) / 1e18; // 50% of nft price
+
+        uint256 maxStablecoinCanBeMinted = availableToBorrowAtMaxCR - userAddressToNumberOfStablecoinsMinted[msg.sender];
+
+        if (_numberToMint <= maxStablecoinCanBeMinted) {
+            bytes memory _payload = abi.encode(_message, _numberToMint, _selection, _recipient); // Encode the message as bytes
+            _lzSend(
+                _dstEid,
+                _payload,
+                _options,
+                MessagingFee(msg.value, 0), // Fee for the message (nativeFee, lzTokenFee)
+                payable(msg.sender) // The refund address in case the send call reverts
+            );
         }
     }
 
@@ -207,23 +267,7 @@ contract StableEngine is OApp, IERC721Receiver {
             abi.decode(payload, (string, uint256, uint256, address));
         // set storage var 'data' to the incoming string
         data = _data;
-
-        // trigger function based on selection (crosschain split logic test)
-        if (selection == 0) {
-            mintStablecoins(recipient, numberOfCoins);
-        } else if (selection == 1) {
-            burnStablecoins(recipient, numberOfCoins);
-        } else if (selection == 2) {
-            callStableEngineContractAndMint(recipient, numberOfCoins);
-        }
-    }
-
-    function mintStablecoins(address _recipient, uint256 _numberOfCoins) internal {
-        stablecoinsMinted[_recipient] += _numberOfCoins;
-    }
-
-    function burnStablecoins(address _recipient, uint256 _numberOfCoins) internal {
-        stablecoinsMinted[_recipient] -= _numberOfCoins;
+        callStableEngineContractAndMint(recipient, numberOfCoins);
     }
 
     function callStableEngineContractAndMint(address _recipient, uint256 _numberOfCoins) internal {

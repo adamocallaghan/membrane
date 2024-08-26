@@ -63,7 +63,7 @@ contract StableEngineTest is Test {
         aliceNftTwo = nft.mint();
     }
 
-    function testSupplyNftIntoContract() public {
+    function test_SupplyNftIntoContract() public {
         // Bob supplies nft to contract
         supplyNftToProtocol();
 
@@ -72,7 +72,7 @@ contract StableEngineTest is Test {
         assertEq(newNftOwner, address(oapp)); // the oapp contract should own the nft now
     }
 
-    function testWithdrawNftFromContract() public {
+    function test_WithdrawNftFromContract() public {
         // Bob supplies nft to contract
         supplyNftToProtocol();
 
@@ -82,6 +82,12 @@ contract StableEngineTest is Test {
         // does Bob own the nft once again?
         address newNftOwner = IERC721(nft).ownerOf(0); // tokenId 0 withdrawn to bob's account again
         assertEq(newNftOwner, bob);
+    }
+
+    function test_MintOnChainFunctionReached() public {
+        // Bob supplies nft to contract
+        supplyNftToProtocol();
+        mintOnOptimism();
     }
 
     // ===============
@@ -99,6 +105,12 @@ contract StableEngineTest is Test {
     function withdrawNftFromProtocol() public {
         vm.startPrank(bob);
         oapp.withdraw(address(nft), bobNftZero);
+        vm.stopPrank();
+    }
+
+    function mintOnOptimism() public {
+        vm.startPrank(bob);
+        oapp.mint(1234e18, StableEngine.ChainSelection.Optimism); // mint amount 1e18 on Optimism
         vm.stopPrank();
     }
 
