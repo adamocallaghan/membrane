@@ -93,3 +93,9 @@ call-mint-on-optimism-public-function:
 mint-on-op:
 	cast send $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) --value 0.1ether "mintOnOptimism(uint32,string,uint,uint,address,bytes)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Boom" 135 1 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
 
+# =========================
+# === SCRIPT DEPLOYMENT ===
+# =========================
+
+deploy-oapp-to-base-using-script:
+	forge script script/StableEngine.s.sol:StableEngineScript --broadcast --verify --rpc-url ${BASE_SEPOLIA_RPC}
