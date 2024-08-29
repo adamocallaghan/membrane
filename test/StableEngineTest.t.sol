@@ -110,7 +110,9 @@ contract StableEngineTest is Test {
 
     function mintOnOptimism() public {
         vm.startPrank(bob);
-        oapp.mint(1234e18, StableEngine.ChainSelection.Optimism); // mint amount 1e18 on Optimism
+        oapp.mintOnOptimism(
+            40231, "Testing", 1234e18, 1, address(bob), "0x00030100110100000000000000000000000000030d40"
+        ); // mint amount 1e18 on Optimism
         vm.stopPrank();
     }
 

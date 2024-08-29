@@ -15,7 +15,6 @@ contract StableEngine is OApp, IERC721Receiver {
     string public data;
 
     // Stablecoin vars
-    mapping(address => uint256) public stablecoinsMinted;
     address public stableCoinContract;
 
     // NFT vars
@@ -33,7 +32,10 @@ contract StableEngine is OApp, IERC721Receiver {
 
     enum ChainSelection {
         Base,
-        Optimism
+        Optimism,
+        Arbitrum,
+        Scroll,
+        Linea
     }
 
     // ==============
@@ -54,6 +56,10 @@ contract StableEngine is OApp, IERC721Receiver {
     event NftSuppliedToContract(address indexed _nftAddress, uint256 indexed _tokenId);
     event NftWithdrawnByUser(address indexed user, uint256 indexed tokenId);
     event MintOnChainFunctionSuccessful();
+
+    // test events - remove
+    event OptimismSelected();
+    event ArbitrumSelected();
 
     constructor(address _endpoint) OApp(_endpoint, msg.sender) Ownable() {}
 
@@ -117,7 +123,7 @@ contract StableEngine is OApp, IERC721Receiver {
     // === MINT OMNI-STABLES ===
     // =========================
 
-    function mintOnDestination(
+    function mintOnOptimism(
         uint32 _dstEid,
         string memory _message,
         uint256 _numberToMint,
@@ -135,7 +141,6 @@ contract StableEngine is OApp, IERC721Receiver {
         uint256 availableToBorrowAtMaxCR = (totalValueOfAllCollateral * COLLATERALISATION_RATIO) / 1e18; // 50% of nft price
         uint256 maxStablecoinCanBeMinted = availableToBorrowAtMaxCR - userAddressToNumberOfStablecoinsMinted[msg.sender];
 
-        //
         if (_numberToMint <= maxStablecoinCanBeMinted) {
             bytes memory _payload = abi.encode(_message, _numberToMint, _selection, _recipient); // Encode the message as bytes
             _lzSend(
@@ -145,7 +150,14 @@ contract StableEngine is OApp, IERC721Receiver {
                 MessagingFee(msg.value, 0), // Fee for the message (nativeFee, lzTokenFee)
                 payable(msg.sender) // The refund address in case the send call reverts
             );
+            // if (_dstEid == 40232) {
+            //     emit OptimismSelected();
+            // } else if (_dstEid == 40231) {
+            //     emit ArbitrumSelected();
+            // }
         }
+
+        userAddressToNumberOfStablecoinsMinted[msg.sender] += _numberToMint;
     }
 
     function externalMintToInternalMint(

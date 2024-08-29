@@ -88,4 +88,8 @@ supply-nft-on-base:
 
 # MINT STABLECOINS ON OPTIMISM
 call-mint-on-optimism-public-function:
-	cast send $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) --value 0.01ether "mintOnDestination(uint32, string, uint, uint, address, bytes)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Hello World" 1ether 2 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
+	cast send $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) --value 0.01ether --gas-limit 300000 --gas-price 1gwei --priority-gas-price 1gwei "mintOnOptimism(uint32,string,uint,uint,address,bytes)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Boom" 135 1 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
+
+mint-on-op:
+	cast send $(BASE_SEPOLIA_OAPP_ADDRESS) --rpc-url $(BASE_SEPOLIA_RPC) --value 0.1ether "mintOnOptimism(uint32,string,uint,uint,address,bytes)" $(OPTIMISM_SEPOLIA_LZ_ENDPOINT_ID) "Boom" 135 1 $(DEPLOYER_PUBLIC_ADDRESS) $(MESSAGE_OPTIONS_BYTES) --account deployer
+
